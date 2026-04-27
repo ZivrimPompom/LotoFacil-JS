@@ -35,10 +35,13 @@ app.get("/api/sync-caixa", async (req, res) => {
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
           "Referer": "https://loterias.caixa.gov.br/",
-          "Accept": "*/*"
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+          "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
         },
-        timeout: 3500, // Faster failure to move to next mirror
-        maxContentLength: 10 * 1024 * 1024, // 10MB limit
+        timeout: 3000, 
+        maxContentLength: 15 * 1024 * 1024,
       });
 
       if (response.status === 200 && response.data) {

@@ -445,13 +445,6 @@ export default function App() {
                 onChange={handleFileUpload} 
                 accept=".xlsx, .xls"
               />
-              <button 
-                  onClick={resetParams}
-                  className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-3 md:py-2 rounded-lg transition-all uppercase text-[8px] md:text-[10px]"
-                  title="Resetar"
-                >
-                  Reset
-              </button>
             </div>
           </div>
           <p className="text-[10px] md:text-xs text-slate-500 font-mono tracking-widest hidden sm:block">ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE</p>
@@ -501,23 +494,16 @@ export default function App() {
 
           {/* Stats and Reset */}
           <div className="flex gap-2 w-full xl:w-auto items-center justify-start sm:justify-end">
-            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[70px] sm:min-w-[80px] md:min-w-[130px] flex-1 sm:flex-none flex flex-col justify-center">
-              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Último</span>
-              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '----'}</span>
+            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right flex-1 sm:flex-none flex flex-col justify-center min-w-fit">
+              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center sm:text-right">Último</span>
+              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center sm:text-right px-2">{data.length || '----'}</span>
             </div>
-            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[70px] sm:min-w-[80px] md:min-w-[130px] flex-1 sm:flex-none flex flex-col justify-center">
-              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Base</span>
-              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '---'}</span>
+            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right flex-1 sm:flex-none flex flex-col justify-center min-w-fit">
+              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center sm:text-right">Base</span>
+              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center sm:text-right px-2">{data.length || '---'}</span>
             </div>
             
-            <div className="hidden xl:flex gap-2 shrink-0">
-              <input 
-                type="file" 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                accept=".xlsx, .xls"
-              />
+            <div className="flex gap-2 shrink-0">
               <button 
                   onClick={resetParams}
                   className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-3 md:py-2 rounded-lg transition-all uppercase text-[8px] md:text-[10px]"
@@ -749,7 +735,7 @@ export default function App() {
                     transition={{ delay: idx * 0.05 }}
                     className="flex flex-col md:flex-row items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-green-500/30 transition-colors group"
                   >
-                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex items-center md:block shrink-0" style={{ writingMode: 'vertical-rl' }}>
+                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex items-center md:block shrink-0 md:[writing-mode:vertical-rl]">
                       JOGO {(idx + 1).toString().padStart(2, '0')}
                     </div>
                     <div className="flex flex-wrap justify-center md:justify-start gap-1.5 flex-grow">
