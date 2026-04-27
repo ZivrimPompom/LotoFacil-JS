@@ -5,8 +5,9 @@ import axios from "axios";
 import AdmZip from "adm-zip";
 import * as XLSX from "xlsx";
 
-async function startServer() {
-  const app = express();
+const app = express();
+
+async function configureApp() {
   const PORT = 3000;
 
   // API to fetch results from Caixa
@@ -48,7 +49,7 @@ async function startServer() {
              entry.entryName.toLowerCase().endsWith(".html") || 
              entry.entryName.toLowerCase().endsWith(".xlsx") ||
              entry.entryName.toLowerCase().endsWith(".xls") ||
-             entry.entryName.toLowerCase().endsWith(".css") || // Sometimes it has weird extensions
+             entry.entryName.toLowerCase().endsWith(".css") ||
              entry.entryName.toLowerCase().endsWith(".csv"))
           );
 
@@ -80,7 +81,6 @@ async function startServer() {
       }
     }
 
-    // Default error response as JSON
     res.status(502).json({ 
       error: "Falha ao sincronizar com a Caixa.",
       details: lastError?.message || "O site da Caixa pode estar offline ou bloqueando a requisição."
@@ -102,9 +102,13 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
-startServer();
+configureApp();
+
+export default app;

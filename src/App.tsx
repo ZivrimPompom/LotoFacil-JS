@@ -437,36 +437,36 @@ export default function App() {
         <div className="flex gap-2 flex-wrap md:flex-nowrap w-full md:w-auto items-center overflow-x-auto pb-2 md:pb-0">
           <button 
               onClick={loadMockData}
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 rounded-lg transition-all glow-green uppercase text-[10px] flex items-center gap-1 shrink-0"
+              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2.5 rounded-lg transition-all glow-green uppercase text-xs flex items-center gap-1.5 shrink-0"
             >
-              <Play className="w-3 h-3" />
+              <Play className="w-3.5 h-3.5" />
               Gerar Jogos
           </button>
           <button 
             onClick={handleGenerate}
             disabled={!analysis || totalSelected !== gameSize}
-            className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 rounded-lg transition-all glow-green uppercase text-[10px] flex items-center gap-1 disabled:opacity-50 disabled:grayscale shrink-0"
+            className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2.5 rounded-lg transition-all glow-green uppercase text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
           >
-            <Sparkles className="w-3 h-3" />
+            <Sparkles className="w-3.5 h-3.5" />
             Gerar com IA
           </button>
           <button 
             onClick={handleSyncCaixa}
             disabled={isSyncing}
             className={cn(
-              "bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 rounded-lg transition-all glow-green uppercase text-[10px] flex items-center gap-1 shrink-0",
+              "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2.5 rounded-lg transition-all glow-green uppercase text-xs flex items-center gap-1.5 shrink-0",
               isSyncing && "animate-pulse opacity-70 cursor-wait"
             )}
           >
-            <Download className={cn("w-3 h-3", isSyncing && "animate-bounce")} />
+            <Download className={cn("w-3.5 h-3.5", isSyncing && "animate-bounce")} />
             {isSyncing ? "Sinc..." : "Sincronizar CEF"}
           </button>
 
-          <div className="glass px-3 py-1.5 rounded-lg text-right min-w-[90px] shrink-0">
+          <div className="glass px-3 py-1.5 rounded-lg text-right min-w-[110px] shrink-0">
             <span className="block text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight">Último</span>
             <span className="block text-base font-mono text-white leading-tight">{data.length || '----'}</span>
           </div>
-          <div className="glass px-3 py-1.5 rounded-lg text-right min-w-[90px] shrink-0">
+          <div className="glass px-3 py-1.5 rounded-lg text-right min-w-[110px] shrink-0">
             <span className="block text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight">Base</span>
             <span className="block text-base font-mono text-white leading-tight">{data.length > 0 ? (data.length > 999 ? (data.length/1000).toFixed(1)+'k' : data.length) : '---'}</span>
           </div>
