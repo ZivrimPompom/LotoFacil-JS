@@ -13,16 +13,21 @@ app.use(express.json());
 app.get("/api/sync-caixa", async (req, res) => {
   console.log("Request received for /api/sync-caixa");
   const urls = [
+    "https://www.loterias.com.br/zip/lotofacil.zip",
+    "https://loteriascaixa.gov.br/loterias/lotofacil/download/resultados/lotofacil.zip",
+    "https://www.asloterias.com.br/download_excel?l=lotofacil",
+    "https://www.loteriaserstats.com.br/download/lotofacil.zip",
+    "https://www.ojogodobicho.com/arquivos/lotofacil.zip",
+    "https://confiraloterias.com.br/download/lotofacil.zip",
     "https://www.asloterias.com.br/arquivos/lotofacil.zip",
-    "https://confiraloterias.com.br/arquivos/lotofacil.zip",
+    "https://investeloto.com.br/download/lotofacil.zip",
     "https://servicebus2.caixa.gov.br/loterias/arquivos/lotofacil/d_lotfac.zip",
-    "https://www.caixa.gov.br/loterias/arquivos/lotofacil/d_lotfac.zip",
     "https://loterias.caixa.gov.br/arquivos/lotofacil/d_lotfac.zip",
   ];
 
   let lastError: any = null;
   const startTime = Date.now();
-  const VERCEL_TIMEOUT = 8500; // Stay well under 10s
+  const VERCEL_TIMEOUT = 25000; // Total budget for all attempts (stay under 30s)
 
   for (const url of urls) {
     if (Date.now() - startTime > VERCEL_TIMEOUT) {
@@ -31,10 +36,11 @@ app.get("/api/sync-caixa", async (req, res) => {
     }
 
     try {
-      console.log("Attempting:", url);
+      console.log(`Trying URL: ${url}`);
       
-      const response = await axios.get(url, {
+      const response = await axios.get(url, { 
         responseType: "arraybuffer",
+        timeout: 10000, 
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
           "Referer": "https://loterias.caixa.gov.br/",

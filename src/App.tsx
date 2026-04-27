@@ -403,6 +403,44 @@ export default function App() {
     setGeneratedGames(games);
   };
 
+  const handleExport = () => {
+    if (generatedGames.length === 0) {
+      alert("Nenhum jogo gerado para exportar. Gere jogos primeiro.");
+      return;
+    }
+
+    // Sheet 1: Generated Games
+    const gamesData = generatedGames.map((game, idx) => ({
+      'Jogo': idx + 1,
+      'Dezenas': game.balls.map(n => n.toString().padStart(2, '0')).join(' - '),
+      'Pares': game.evens,
+      'Ímpares': game.odds,
+      'Status': game.isNew ? 'Inédito' : 'Já Sorteado'
+    }));
+
+    const wsGames = XLSX.utils.json_to_sheet(gamesData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsGames, "Jogos Gerados");
+
+    // Sheet 2: Analysis Info (if available)
+    if (analysis) {
+      const freqData = [
+        ...analysis.quentissimas.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Quentíssima' })),
+        ...analysis.quentes.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Quente' })),
+        ...analysis.mornas.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Morna' })),
+        ...analysis.frias.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Fria' })),
+        ...analysis.geladas.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Gelada' })),
+      ].sort((a, b) => b.Frequencia - a.Frequencia);
+
+      const wsAnalysis = XLSX.utils.json_to_sheet(freqData);
+      XLSX.utils.book_append_sheet(wb, wsAnalysis, "Análise de Frequência");
+    }
+
+    // Export file
+    const dateStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `LotoSmart_Export_${dateStr}.xlsx`);
+  };
+
   const totalSelected = qtCount + qCount + mCount + fCount + gCount;
 
   const expectedParity = useMemo(() => {
@@ -688,7 +726,10 @@ export default function App() {
                     </div>
                     <p className="text-[9px] text-slate-500 italic">Baseado na sua distribuição de dezenas selecionada.</p>
                  </div>
-                 <button className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-white/10 flex items-center justify-center gap-2">
+                 <button 
+                   onClick={handleExport}
+                   className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-white/10 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                 >
                     <FileSpreadsheet className="w-3 h-3" /> Exportar Dados (.xlsx)
                  </button>
               </div>
