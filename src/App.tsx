@@ -578,9 +578,11 @@ export default function App() {
                   </label>
                   <input 
                     type="number" 
-                    value={numGames} 
-                    onChange={(e) => setNumGames(Number(e.target.value))}
+                    value={numGames || ''} 
+                    onChange={(e) => setNumGames(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onFocus={(e) => e.target.select()}
                     className="text-base md:text-xl font-mono text-white bg-transparent w-full focus:outline-none"
+                    placeholder="0"
                     min="1"
                     max="50"
                   />
@@ -603,9 +605,11 @@ export default function App() {
                         <div className="text-[9px] md:text-[10px] opacity-70 font-bold">{item.label}</div>
                         <input 
                           type="number" 
-                          value={item.val} 
-                          onChange={(e) => updateCounts(item.key, Number(e.target.value))}
+                          value={item.val || ''} 
+                          onChange={(e) => updateCounts(item.key, e.target.value === '' ? 0 : Number(e.target.value))}
+                          onFocus={(e) => e.target.select()}
                           className="w-full bg-transparent text-center font-mono text-xs md:text-sm focus:outline-none"
+                          placeholder="0"
                           min="0"
                           max={item.max}
                         />
@@ -623,9 +627,11 @@ export default function App() {
                   <label className="text-[9px] md:text-[10px] block text-slate-500 uppercase font-bold mb-1">Pares Mín.</label>
                   <input 
                     type="number" 
-                    value={minEvens} 
-                    onChange={(e) => setMinEvens(Number(e.target.value))}
+                    value={minEvens || ''} 
+                    onChange={(e) => setMinEvens(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onFocus={(e) => e.target.select()}
                     className="text-base md:text-xl font-mono text-white bg-transparent w-full focus:outline-none"
+                    placeholder="0"
                     min="0"
                     max={gameSize}
                   />
@@ -634,9 +640,11 @@ export default function App() {
                   <label className="text-[9px] md:text-[10px] block text-slate-500 uppercase font-bold mb-1">Pares Máx.</label>
                   <input 
                     type="number" 
-                    value={maxEvens} 
-                    onChange={(e) => setMaxEvens(Number(e.target.value))}
+                    value={maxEvens || ''} 
+                    onChange={(e) => setMaxEvens(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onFocus={(e) => e.target.select()}
                     className="text-base md:text-xl font-mono text-white bg-transparent w-full focus:outline-none"
+                    placeholder="0"
                     min="0"
                     max={gameSize}
                   />
