@@ -256,7 +256,11 @@ export default function App() {
         let errorMessage = "Falha ao sincronizar.";
         if (contentType && contentType.includes('application/json')) {
           const errorData = await response.json();
-          errorMessage = errorData.error || errorData.details || errorMessage;
+          if (errorData.timeout) {
+            errorMessage = "A sincronização demorou muito. O site da Caixa está instável. Tente novamente ou use a opção 'Local'.";
+          } else {
+            errorMessage = errorData.error || errorData.details || errorMessage;
+          }
         } else {
           errorMessage = await response.text();
           // Truncate if it's a long HTML string
@@ -427,76 +431,101 @@ export default function App() {
      <div className="min-h-screen lg:h-screen flex flex-col p-4 md:p-6 gap-4 md:gap-6 font-sans overflow-x-hidden">
       {/* Top Header */}
       <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
-        <div className="flex flex-col">
-          <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic gradient-text flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
-            LotoSmart AI
-          </h1>
+        <div className="flex flex-col w-full xl:w-auto">
+          <div className="flex justify-between items-center w-full xl:w-auto">
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic gradient-text flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
+              LotoSmart AI
+            </h1>
+            <div className="flex xl:hidden gap-2 shrink-0">
+              <input 
+                type="file" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                accept=".xlsx, .xls"
+              />
+              <button 
+                  onClick={resetParams}
+                  className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-3 md:py-2 rounded-lg transition-all uppercase text-[8px] md:text-[10px]"
+                  title="Resetar"
+                >
+                  Reset
+              </button>
+            </div>
+          </div>
           <p className="text-[10px] md:text-xs text-slate-500 font-mono tracking-widest hidden sm:block">ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE</p>
         </div>
-        <div className="flex gap-2 w-full xl:w-auto items-center justify-end overflow-x-auto pb-2 xl:pb-0 custom-scrollbar">
-          <button 
-              onClick={loadMockData}
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
-            >
-              <Play className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Gerar Jogos</span>
-              <span className="sm:hidden">Gerar</span>
-          </button>
-          <button 
-            onClick={handleGenerate}
-            disabled={!analysis || totalSelected !== gameSize}
-            className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Gerar com IA</span>
-            <span className="sm:hidden">com IA</span>
-          </button>
-          <button 
-            onClick={handleSyncCaixa}
-            disabled={isSyncing}
-            className={cn(
-              "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0",
-              isSyncing && "animate-pulse opacity-70 cursor-wait"
-            )}
-          >
-            <Download className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isSyncing && "animate-bounce")} />
-            {isSyncing ? "Sinc..." : "CEF"}
-          </button>
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
-            title="Carregar Arquivo"
-          >
-            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Local</span>
-            <span className="sm:hidden">LOC</span>
-          </button>
-
-          <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[80px] md:min-w-[130px] shrink-0 flex flex-col justify-center">
-            <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Último</span>
-            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '----'}</span>
-          </div>
-          <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[80px] md:min-w-[130px] shrink-0 flex flex-col justify-center">
-            <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Base</span>
-            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '---'}</span>
-          </div>
-          
-          <div className="flex gap-2 shrink-0">
-            <input 
-              type="file" 
-              className="hidden" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              accept=".xlsx, .xls"
-            />
+        
+        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+          {/* Main Action Buttons */}
+          <div className="flex gap-2 w-full xl:w-auto items-center justify-start sm:justify-end overflow-x-auto pb-1 xl:pb-0 custom-scrollbar">
             <button 
-                onClick={resetParams}
-                className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-3 md:py-2 rounded-lg transition-all uppercase text-[8px] md:text-[10px]"
-                title="Resetar"
+                onClick={loadMockData}
+                className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
               >
-                Reset
+                <Play className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Gerar Jogos</span>
+                <span className="sm:hidden">Gerar</span>
             </button>
+            <button 
+              onClick={handleGenerate}
+              disabled={!analysis || totalSelected !== gameSize}
+              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Gerar com IA</span>
+              <span className="sm:hidden">com IA</span>
+            </button>
+            <button 
+              onClick={handleSyncCaixa}
+              disabled={isSyncing}
+              className={cn(
+                "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0",
+                isSyncing && "animate-pulse opacity-70 cursor-wait"
+              )}
+            >
+              <Download className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isSyncing && "animate-bounce")} />
+              {isSyncing ? "Sinc..." : "CEF"}
+            </button>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
+              title="Carregar Arquivo"
+            >
+              <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Local</span>
+              <span className="sm:hidden">LOC</span>
+            </button>
+          </div>
+
+          {/* Stats and Reset */}
+          <div className="flex gap-2 w-full xl:w-auto items-center justify-start sm:justify-end">
+            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[70px] sm:min-w-[80px] md:min-w-[130px] flex-1 sm:flex-none flex flex-col justify-center">
+              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Último</span>
+              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '----'}</span>
+            </div>
+            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[70px] sm:min-w-[80px] md:min-w-[130px] flex-1 sm:flex-none flex flex-col justify-center">
+              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Base</span>
+              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '---'}</span>
+            </div>
+            
+            <div className="hidden xl:flex gap-2 shrink-0">
+              <input 
+                type="file" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                accept=".xlsx, .xls"
+              />
+              <button 
+                  onClick={resetParams}
+                  className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-3 md:py-2 rounded-lg transition-all uppercase text-[8px] md:text-[10px]"
+                  title="Resetar"
+                >
+                  Reset
+              </button>
+            </div>
           </div>
         </div>
       </header>

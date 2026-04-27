@@ -10,37 +10,35 @@ const app = express();
 // API to fetch results from Caixa
 app.get("/api/sync-caixa", async (req, res) => {
   const urls = [
-    "https://www.asloterias.com.br/arquivos/lotofacil_excel.zip",
+    "https://www.asloterias.com.br/arquivos/lotofacil.zip",
     "https://confiraloterias.com.br/arquivos/lotofacil.zip",
-    "http://files.asloterias.com.br/lotofacil.zip",
     "https://servicebus2.caixa.gov.br/loterias/arquivos/lotofacil/d_lotfac.zip",
     "https://www.caixa.gov.br/loterias/arquivos/lotofacil/d_lotfac.zip",
     "https://loterias.caixa.gov.br/arquivos/lotofacil/d_lotfac.zip",
-    "https://www.loterias.caixa.gov.br/arquivos/lotofacil/D_LOTFAC.ZIP"
   ];
 
   let lastError: any = null;
   const startTime = Date.now();
-  const VERCEL_TIMEOUT = 9000; // Keep slightly under 10s
+  const VERCEL_TIMEOUT = 8500; // Stay well under 10s
 
   for (const url of urls) {
-    // Check total execution time to avoid Vercel 10s cutoff
     if (Date.now() - startTime > VERCEL_TIMEOUT) {
-      console.warn("Approaching Vercel timeout, stopping URL attempts.");
+      console.warn("Approaching timeout, skipping remaining URLs");
       break;
     }
 
     try {
-      console.log("Attempting to fetch results from:", url);
+      console.log("Attempting:", url);
       
       const response = await axios.get(url, {
         responseType: "arraybuffer",
         headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Referer": url.includes("asloterias") ? "https://www.asloterias.com.br/" : "https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx",
-          "Accept": "application/zip, application/octet-stream, */*"
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          "Referer": "https://loterias.caixa.gov.br/",
+          "Accept": "*/*"
         },
-        timeout: 4000 // Short individual timeout to try more mirrors
+        timeout: 3500, // Faster failure to move to next mirror
+        maxContentLength: 10 * 1024 * 1024, // 10MB limit
       });
 
       if (response.status === 200 && response.data) {
