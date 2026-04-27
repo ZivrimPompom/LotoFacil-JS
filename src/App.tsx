@@ -13,7 +13,8 @@ import {
   Terminal,
   Download,
   Sparkles,
-  Play
+  Play,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -270,7 +271,9 @@ export default function App() {
       }
 
       if (!contentType || !contentType.includes('application/json')) {
-        throw new Error("Resposta inesperada do servidor (não é JSON).");
+        const text = await response.text();
+        console.error("Non-JSON response received:", text.slice(0, 200));
+        throw new Error("Resposta inesperada do servidor (o endpoint /api/sync-caixa retornou HTML em vez de dados). Tente novamente ou use a opção 'Local'.");
       }
 
       const { data: rawData, fileName: remoteFileName } = await response.json();
@@ -764,12 +767,23 @@ export default function App() {
                     </div>
                     <div className="flex flex-wrap justify-center md:justify-start gap-1.5 flex-grow">
                       {game.balls.map(num => (
-                        <Ball key={num} number={num} className="w-7 h-7 text-xs md:w-8 md:h-8 md:text-sm" />
+                        <Ball 
+                          key={num} 
+                          number={num} 
+                          highlighted={!game.isNew} 
+                          className="w-7 h-7 text-xs md:w-8 md:h-8 md:text-sm" 
+                        />
                       ))}
                     </div>
                     <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 shrink-0 border-t md:border-t-0 border-white/5 pt-2 md:pt-0">
                       <div className="text-[10px] text-slate-500 font-bold">{game.evens}P | {game.odds}Í</div>
-                      <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold">INÉDITO</div>
+                      {game.isNew ? (
+                        <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold">INÉDITO</div>
+                      ) : (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-bold animate-pulse">
+                          <AlertTriangle className="w-3 h-3" /> JÁ SORTEADO
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 ))}

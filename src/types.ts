@@ -17,6 +17,7 @@ export interface Game {
   balls: number[];
   evens: number;
   odds: number;
+  isNew: boolean;
 }
 
 export interface ParityStats {

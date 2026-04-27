@@ -7,8 +7,11 @@ import * as XLSX from "xlsx";
 
 const app = express();
 
+app.use(express.json());
+
 // API to fetch results from Caixa
 app.get("/api/sync-caixa", async (req, res) => {
+  console.log("Request received for /api/sync-caixa");
   const urls = [
     "https://www.asloterias.com.br/arquivos/lotofacil.zip",
     "https://confiraloterias.com.br/arquivos/lotofacil.zip",
@@ -116,6 +119,12 @@ async function configureApp() {
   } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
+    
+    // API 404 - Ensure other API calls don't fall through to index.html
+    app.all("/api/*", (req, res) => {
+      res.status(404).json({ error: "API route not found" });
+    });
+
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

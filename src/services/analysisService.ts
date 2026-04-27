@@ -162,11 +162,12 @@ export const generateGames = (
     if (evens < minEvens || evens > maxEvens) continue;
 
     const gameStr = uniqueBalls.join(',');
-    if (!historySet.has(gameStr) && !games.some(g => g.balls.join(',') === gameStr)) {
+    if (!games.some(g => g.balls.join(',') === gameStr)) {
       games.push({
         balls: uniqueBalls,
         evens,
-        odds: totalRequested - evens
+        odds: totalRequested - evens,
+        isNew: !historySet.has(gameStr)
       });
     }
   }
