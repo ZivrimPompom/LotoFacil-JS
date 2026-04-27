@@ -430,8 +430,8 @@ export default function App() {
   return (
      <div className="min-h-screen lg:h-screen flex flex-col p-4 md:p-6 gap-4 md:gap-6 font-sans overflow-x-hidden">
       {/* Top Header */}
-      <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
-        <div className="flex flex-col w-full xl:w-auto">
+      <header className="flex flex-col xl:flex-row justify-between items-center xl:items-center gap-4 shrink-0">
+        <div className="flex flex-col w-full xl:w-auto items-start text-left">
           <div className="flex justify-between items-center w-full xl:w-auto">
             <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic gradient-text flex items-center gap-2">
               <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
@@ -447,72 +447,67 @@ export default function App() {
               />
             </div>
           </div>
-          <p className="text-[10px] md:text-xs text-slate-500 font-mono tracking-widest hidden sm:block">ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE</p>
+          <p className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest hidden sm:block mt-0.5">ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-          {/* Main Action Buttons */}
-          <div className="flex gap-2 w-full xl:w-auto items-center justify-start sm:justify-end overflow-x-auto pb-1 xl:pb-0 custom-scrollbar">
-            <button 
-                onClick={loadMockData}
-                className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
-              >
-                <Play className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                <span className="hidden sm:inline">Gerar Jogos</span>
-                <span className="sm:hidden">Gerar</span>
-            </button>
-            <button 
-              onClick={handleGenerate}
-              disabled={!analysis || totalSelected !== gameSize}
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
+        <div className="flex flex-wrap gap-2 w-full xl:w-auto items-center justify-center sm:justify-end overflow-x-auto pb-1 xl:pb-0 custom-scrollbar">
+          {/* Action Buttons */}
+          <button 
+              onClick={loadMockData}
+              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
             >
-              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Gerar com IA</span>
-              <span className="sm:hidden">com IA</span>
-            </button>
-            <button 
-              onClick={handleSyncCaixa}
-              disabled={isSyncing}
-              className={cn(
-                "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0",
-                isSyncing && "animate-pulse opacity-70 cursor-wait"
-              )}
-            >
-              <Download className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isSyncing && "animate-bounce")} />
-              {isSyncing ? "Sinc..." : "CEF"}
-            </button>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
-              title="Carregar Arquivo"
-            >
-              <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Local</span>
-              <span className="sm:hidden">LOC</span>
-            </button>
-          </div>
+              <Play className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Gerar Jogos</span>
+              <span className="sm:hidden">Gerar</span>
+          </button>
+          <button 
+            onClick={handleGenerate}
+            disabled={!analysis || totalSelected !== gameSize}
+            className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden sm:inline">Gerar com IA</span>
+            <span className="sm:hidden">com IA</span>
+          </button>
+          <button 
+            onClick={handleSyncCaixa}
+            disabled={isSyncing}
+            className={cn(
+              "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0",
+              isSyncing && "animate-pulse opacity-70 cursor-wait"
+            )}
+          >
+            <Download className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isSyncing && "animate-bounce")} />
+            {isSyncing ? "Sinc..." : "CEF"}
+          </button>
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
+            title="Carregar Arquivo"
+          >
+            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden sm:inline">Local</span>
+            <span className="sm:hidden">LOC</span>
+          </button>
 
-          {/* Stats and Reset */}
-          <div className="flex gap-2 w-full xl:w-auto items-center justify-start sm:justify-end">
-            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right flex-1 sm:flex-none flex flex-col justify-center min-w-fit">
-              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center sm:text-right">Último</span>
-              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center sm:text-right px-2">{data.length || '----'}</span>
-            </div>
-            <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right flex-1 sm:flex-none flex flex-col justify-center min-w-fit">
-              <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center sm:text-right">Base</span>
-              <span className="block text-xs md:text-base font-mono text-white leading-tight text-center sm:text-right px-2">{data.length || '---'}</span>
-            </div>
-            
-            <div className="flex gap-2 shrink-0">
-              <button 
-                  onClick={resetParams}
-                  className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-3 md:py-2 rounded-lg transition-all uppercase text-[8px] md:text-[10px]"
-                  title="Resetar"
-                >
-                  Reset
-              </button>
-            </div>
+          {/* Stats */}
+          <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right flex flex-col justify-center min-w-fit shrink-0">
+            <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center sm:text-right">Último</span>
+            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center sm:text-right px-2">{data.length || '----'}</span>
           </div>
+          <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right flex flex-col justify-center min-w-fit shrink-0">
+            <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center sm:text-right">Base</span>
+            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center sm:text-right px-2">{data.length || '---'}</span>
+          </div>
+          
+          {/* Reset */}
+          <button 
+              onClick={resetParams}
+              className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-4 md:py-3 rounded-lg transition-all uppercase text-[8px] md:text-[10px] shrink-0"
+              title="Resetar"
+            >
+              Reset
+          </button>
         </div>
       </header>
 
@@ -735,7 +730,7 @@ export default function App() {
                     transition={{ delay: idx * 0.05 }}
                     className="flex flex-col md:flex-row items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-green-500/30 transition-colors group"
                   >
-                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex items-center md:block shrink-0 md:[writing-mode:vertical-rl]">
+                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex items-center md:block shrink-0 md:[writing-mode:vertical-rl] whitespace-nowrap">
                       JOGO {(idx + 1).toString().padStart(2, '0')}
                     </div>
                     <div className="flex flex-wrap justify-center md:justify-start gap-1.5 flex-grow">
