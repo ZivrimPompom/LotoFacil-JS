@@ -430,14 +430,14 @@ export default function App() {
   return (
      <div className="min-h-screen lg:h-screen flex flex-col p-4 md:p-6 gap-4 md:gap-6 font-sans overflow-x-hidden">
       {/* Top Header */}
-      <header className="flex flex-col xl:flex-row justify-between items-center xl:items-center gap-4 shrink-0">
-        <div className="flex flex-col w-full xl:w-auto items-start text-left">
-          <div className="flex justify-between items-center w-full xl:w-auto">
-            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic gradient-text flex items-center gap-2">
+      <header className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 shrink-0 transition-all">
+        <div className="flex flex-col items-center lg:items-start justify-center">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic gradient-text flex items-center gap-2 leading-none">
               <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
-              LotoSmart AI
+              LotoSmart IA
             </h1>
-            <div className="flex xl:hidden gap-2 shrink-0">
+            <div className="flex lg:hidden">
               <input 
                 type="file" 
                 className="hidden" 
@@ -447,49 +447,70 @@ export default function App() {
               />
             </div>
           </div>
-          <p className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest hidden sm:block mt-0.5">ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE</p>
+          <p className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest uppercase mt-2 leading-none text-center lg:text-left">
+            ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE
+          </p>
         </div>
         
-        <div className="flex flex-wrap gap-2 w-full xl:w-auto items-center justify-center sm:justify-end overflow-x-auto pb-1 xl:pb-0 custom-scrollbar">
-          {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto items-center justify-center lg:justify-end overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
           <button 
               onClick={loadMockData}
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
+              className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 shrink-0 text-left"
             >
-              <Play className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Gerar Jogos</span>
-              <span className="sm:hidden">Gerar</span>
+              <Play className="w-4 h-4 md:w-5 md:h-5" />
+              <div className="flex flex-col leading-tight">
+                <span className="hidden sm:inline">Gerar</span>
+                <span className="hidden sm:inline font-black">Jogos</span>
+                <span className="sm:hidden">Gerar</span>
+              </div>
           </button>
           <button 
             onClick={handleGenerate}
             disabled={!analysis || totalSelected !== gameSize}
-            className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
+            className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale shrink-0 text-left"
           >
-            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Gerar com IA</span>
-            <span className="sm:hidden">com IA</span>
+            <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+            <div className="flex flex-col leading-tight">
+              <span className="hidden sm:inline">Gerar</span>
+              <span className="hidden sm:inline font-black">com IA</span>
+              <span className="sm:hidden text-[7px]">com IA</span>
+            </div>
           </button>
           <button 
             onClick={handleSyncCaixa}
             disabled={isSyncing}
             className={cn(
-              "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0",
+              "bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 shrink-0 text-left",
               isSyncing && "animate-pulse opacity-70 cursor-wait"
             )}
           >
-            <Download className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isSyncing && "animate-bounce")} />
-            {isSyncing ? "Sinc..." : "CEF"}
-          </button>
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
-            title="Carregar Arquivo"
-          >
-            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
-            <span className="hidden sm:inline">Local</span>
-            <span className="sm:hidden">LOC</span>
+            <Download className={cn("w-4 h-4 md:w-5 md:h-5", isSyncing && "animate-bounce")} />
+            <div className="flex flex-col leading-tight">
+              {isSyncing ? (
+                 <span className="font-black">Sinc...</span>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Sincronizar</span>
+                  <span className="hidden sm:inline font-black">Caixa/CEF</span>
+                  <span className="sm:hidden">CEF</span>
+                </>
+              )}
+            </div>
           </button>
 
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all uppercase text-[9px] md:text-xs flex items-center gap-2 shrink-0 text-left"
+            title="Carregar Arquivo"
+          >
+            <Upload className="w-4 h-4 md:w-5 md:h-5" />
+            <div className="flex flex-col leading-tight">
+              <span className="hidden sm:inline">Carregar</span>
+              <span className="hidden sm:inline font-black">Local</span>
+              <span className="sm:hidden">LOC</span>
+            </div>
+          </button>
+          
           {/* Stats */}
           <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right flex flex-col justify-center min-w-fit shrink-0">
             <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center sm:text-right">Último</span>
@@ -730,7 +751,7 @@ export default function App() {
                     transition={{ delay: idx * 0.05 }}
                     className="flex flex-col md:flex-row items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-green-500/30 transition-colors group"
                   >
-                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex items-center md:block shrink-0 md:[writing-mode:vertical-rl] whitespace-nowrap">
+                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex items-center justify-center md:block shrink-0 md:[writing-mode:vertical-rl] whitespace-nowrap bg-white/5 px-3 py-1 rounded-full md:rounded-none md:bg-transparent">
                       JOGO {(idx + 1).toString().padStart(2, '0')}
                     </div>
                     <div className="flex flex-wrap justify-center md:justify-start gap-1.5 flex-grow">

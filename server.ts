@@ -40,8 +40,8 @@ app.get("/api/sync-caixa", async (req, res) => {
           "Cache-Control": "no-cache",
           "Pragma": "no-cache"
         },
-        timeout: 3000, 
-        maxContentLength: 15 * 1024 * 1024,
+        timeout: 8000, 
+        maxContentLength: 20 * 1024 * 1024,
       });
 
       if (response.status === 200 && response.data) {
