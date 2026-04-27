@@ -424,51 +424,62 @@ export default function App() {
   }, [analysis, qtCount, qCount, mCount, fCount, gCount, totalSelected]);
 
   return (
-    <div className="h-screen flex flex-col p-4 md:p-6 gap-6 font-sans overflow-hidden">
+     <div className="min-h-screen lg:h-screen flex flex-col p-4 md:p-6 gap-4 md:gap-6 font-sans overflow-x-hidden">
       {/* Top Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
-        <div>
-          <h1 className="text-3xl font-black tracking-tighter uppercase italic gradient-text flex items-center gap-2">
-            <TrendingUp className="w-8 h-8 text-green-500" />
+      <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 shrink-0">
+        <div className="flex flex-col">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tighter uppercase italic gradient-text flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
             LotoSmart AI
           </h1>
-          <p className="text-xs text-slate-500 font-mono tracking-widest">ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE</p>
+          <p className="text-[10px] md:text-xs text-slate-500 font-mono tracking-widest hidden sm:block">ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE</p>
         </div>
-        <div className="flex gap-2 flex-wrap md:flex-nowrap w-full md:w-auto items-center overflow-x-auto pb-2 md:pb-0">
+        <div className="flex gap-2 w-full xl:w-auto items-center justify-end overflow-x-auto pb-2 xl:pb-0 custom-scrollbar">
           <button 
               onClick={loadMockData}
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2.5 rounded-lg transition-all glow-green uppercase text-xs flex items-center gap-1.5 shrink-0"
+              className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
             >
-              <Play className="w-3.5 h-3.5" />
-              Gerar Jogos
+              <Play className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Gerar Jogos</span>
+              <span className="sm:hidden">Gerar</span>
           </button>
           <button 
             onClick={handleGenerate}
             disabled={!analysis || totalSelected !== gameSize}
-            className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2.5 rounded-lg transition-all glow-green uppercase text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
+            className="bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:grayscale shrink-0"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            Gerar com IA
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden sm:inline">Gerar com IA</span>
+            <span className="sm:hidden">com IA</span>
           </button>
           <button 
             onClick={handleSyncCaixa}
             disabled={isSyncing}
             className={cn(
-              "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2.5 rounded-lg transition-all glow-green uppercase text-xs flex items-center gap-1.5 shrink-0",
+              "bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all glow-green uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0",
               isSyncing && "animate-pulse opacity-70 cursor-wait"
             )}
           >
-            <Download className={cn("w-3.5 h-3.5", isSyncing && "animate-bounce")} />
-            {isSyncing ? "Sinc..." : "Sincronizar CEF"}
+            <Download className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isSyncing && "animate-bounce")} />
+            {isSyncing ? "Sinc..." : "CEF"}
+          </button>
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-4 py-2 md:px-5 md:py-3 rounded-lg transition-all uppercase text-[10px] md:text-sm flex items-center gap-1.5 shrink-0"
+            title="Carregar Arquivo"
+          >
+            <Upload className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden sm:inline">Local</span>
+            <span className="sm:hidden">LOC</span>
           </button>
 
-          <div className="glass px-3 py-1.5 rounded-lg text-right min-w-[110px] shrink-0">
-            <span className="block text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight">Último</span>
-            <span className="block text-base font-mono text-white leading-tight">{data.length || '----'}</span>
+          <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[80px] md:min-w-[130px] shrink-0 flex flex-col justify-center">
+            <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Último</span>
+            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '----'}</span>
           </div>
-          <div className="glass px-3 py-1.5 rounded-lg text-right min-w-[110px] shrink-0">
-            <span className="block text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight">Base</span>
-            <span className="block text-base font-mono text-white leading-tight">{data.length > 0 ? (data.length > 999 ? (data.length/1000).toFixed(1)+'k' : data.length) : '---'}</span>
+          <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[80px] md:min-w-[130px] shrink-0 flex flex-col justify-center">
+            <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Base</span>
+            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length > 0 ? (data.length > 999 ? (data.length/1000).toFixed(1)+'k' : data.length) : '---'}</span>
           </div>
           
           <div className="flex gap-2 shrink-0">
@@ -480,15 +491,9 @@ export default function App() {
               accept=".xlsx, .xls"
             />
             <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold px-3 py-2 rounded-lg transition-all uppercase text-[10px] flex items-center gap-1"
-            >
-              <Upload className="w-3 h-3" />
-              Local
-            </button>
-            <button 
                 onClick={resetParams}
-                className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold px-3 py-2 rounded-lg transition-all uppercase text-[10px]"
+                className="bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-500 font-bold p-2 md:px-3 md:py-2 rounded-lg transition-all uppercase text-[8px] md:text-[10px]"
+                title="Resetar"
               >
                 Reset
             </button>
@@ -498,8 +503,8 @@ export default function App() {
 
       <div className="flex flex-col lg:flex-row gap-6 flex-grow overflow-hidden h-full">
         {/* Left Panel: Parameters */}
-        <aside className="w-full lg:w-[400px] lg:shrink-0 flex flex-col gap-6 lg:overflow-y-auto custom-scrollbar h-full pr-1">
-          <section className="glass rounded-2xl p-6 flex flex-col gap-4">
+        <aside className="w-full lg:w-[400px] lg:shrink-0 flex flex-col gap-6 lg:overflow-y-auto custom-scrollbar lg:h-full pr-0 lg:pr-1">
+          <section className="glass rounded-2xl p-4 md:p-6 flex flex-col gap-4">
             <h2 className="text-sm font-bold uppercase tracking-widest text-green-400 border-b border-white/10 pb-2 flex items-center gap-2">
               <Settings2 className="w-4 h-4" /> Parâmetros de Entrada
             </h2>
@@ -520,15 +525,15 @@ export default function App() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="glass p-3 rounded-lg">
-                  <label className="text-[10px] block text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
+              <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 md:gap-4">
+                <div className="glass p-2 md:p-3 rounded-lg">
+                  <label className="text-[9px] md:text-[10px] block text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
                     <Dices className="w-3 h-3" /> Tamanho
                   </label>
                   <select 
                     value={gameSize}
                     onChange={(e) => setGameSize(Number(e.target.value))}
-                    className="w-full bg-transparent font-mono text-white text-xl focus:outline-none appearance-none"
+                    className="w-full bg-transparent font-mono text-white text-base md:text-xl focus:outline-none appearance-none"
                   >
                     {[15, 16, 17, 18, 19, 20].map(size => (
                       <option key={size} value={size} className="bg-slate-900">{size}</option>
@@ -536,15 +541,15 @@ export default function App() {
                   </select>
                 </div>
 
-                <div className="glass p-3 rounded-lg">
-                  <label className="text-[10px] block text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
+                <div className="glass p-2 md:p-3 rounded-lg">
+                  <label className="text-[9px] md:text-[10px] block text-slate-500 uppercase font-bold mb-1 flex items-center gap-2">
                     <Layers className="w-3 h-3" /> Nº Jogos
                   </label>
                   <input 
                     type="number" 
                     value={numGames} 
                     onChange={(e) => setNumGames(Number(e.target.value))}
-                    className="text-xl font-mono text-white bg-transparent w-full focus:outline-none"
+                    className="text-base md:text-xl font-mono text-white bg-transparent w-full focus:outline-none"
                     min="1"
                     max="50"
                   />
@@ -555,7 +560,7 @@ export default function App() {
                   <label className="text-xs text-slate-400 uppercase font-bold italic flex items-center gap-2">
                     <Dices className="w-3 h-3" /> Distribuição de Dezenas (Soma: {totalSelected}/{gameSize})
                   </label>
-                  <div className="grid grid-cols-5 gap-1">
+                  <div className="grid grid-cols-5 xl:grid-cols-5 gap-1">
                     {[
                       { label: 'QT', val: qtCount, key: 'qt', color: 'bg-red-500/20 border-red-500/50', max: analysis?.quentissimas.length ?? 25 },
                       { label: 'Q', val: qCount, key: 'q', color: 'bg-orange-500/20 border-orange-500/50', max: analysis?.quentes.length ?? 25 },
@@ -563,17 +568,17 @@ export default function App() {
                       { label: 'F', val: fCount, key: 'f', color: 'bg-blue-500/20 border-blue-500/50', max: analysis?.frias.length ?? 25 },
                       { label: 'G', val: gCount, key: 'g', color: 'bg-cyan-500/20 border-cyan-500/50', max: analysis?.geladas.length ?? 25 },
                     ].map((item) => (
-                      <div key={item.label} className={`${item.color} border p-2 rounded text-center`}>
-                        <div className="text-[10px] opacity-70 font-bold">{item.label}</div>
+                      <div key={item.label} className={`${item.color} border px-1 py-1.5 md:p-2 rounded text-center`}>
+                        <div className="text-[9px] md:text-[10px] opacity-70 font-bold">{item.label}</div>
                         <input 
                           type="number" 
                           value={item.val} 
                           onChange={(e) => updateCounts(item.key, Number(e.target.value))}
-                          className="w-full bg-transparent text-center font-mono focus:outline-none"
+                          className="w-full bg-transparent text-center font-mono text-xs md:text-sm focus:outline-none"
                           min="0"
                           max={item.max}
                         />
-                        <div className="text-[8px] opacity-40 mt-0.5">max {item.max}</div>
+                        <div className="text-[7px] md:text-[8px] opacity-40 mt-0.5">max {item.max}</div>
                       </div>
                     ))}
                   </div>
@@ -582,25 +587,25 @@ export default function App() {
                   )}
                 </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="glass p-3 rounded-lg">
-                  <label className="text-[10px] block text-slate-500 uppercase font-bold mb-1">Pares Mín.</label>
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div className="glass p-2 md:p-3 rounded-lg">
+                  <label className="text-[9px] md:text-[10px] block text-slate-500 uppercase font-bold mb-1">Pares Mín.</label>
                   <input 
                     type="number" 
                     value={minEvens} 
                     onChange={(e) => setMinEvens(Number(e.target.value))}
-                    className="text-xl font-mono text-white bg-transparent w-full focus:outline-none"
+                    className="text-base md:text-xl font-mono text-white bg-transparent w-full focus:outline-none"
                     min="0"
                     max={gameSize}
                   />
                 </div>
-                <div className="glass p-3 rounded-lg">
-                  <label className="text-[10px] block text-slate-500 uppercase font-bold mb-1">Pares Máx.</label>
+                <div className="glass p-2 md:p-3 rounded-lg">
+                  <label className="text-[9px] md:text-[10px] block text-slate-500 uppercase font-bold mb-1">Pares Máx.</label>
                   <input 
                     type="number" 
                     value={maxEvens} 
                     onChange={(e) => setMaxEvens(Number(e.target.value))}
-                    className="text-xl font-mono text-white bg-transparent w-full focus:outline-none"
+                    className="text-base md:text-xl font-mono text-white bg-transparent w-full focus:outline-none"
                     min="0"
                     max={gameSize}
                   />
@@ -650,9 +655,9 @@ export default function App() {
         </aside>
 
         {/* Right Content: Frequency & Games */}
-        <main className="flex-1 min-w-0 flex flex-col gap-6 h-full lg:overflow-y-auto custom-scrollbar pr-2">
-          <section className="glass rounded-2xl p-6 shrink-0">
-            <div className="flex justify-between items-center mb-6">
+        <main className="flex-1 min-w-0 flex flex-col gap-6 lg:overflow-y-auto custom-scrollbar pb-10 lg:pb-0 lg:pr-2">
+          <section className="glass rounded-2xl p-4 md:p-6 shrink-0">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
               <h2 className="text-sm font-bold uppercase tracking-widest text-white flex items-center gap-2">
                 <Layers className="w-4 h-4" /> Segmentação de Dezenas
               </h2>
@@ -664,12 +669,12 @@ export default function App() {
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6"
+                  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6 xl:gap-4"
                 >
                   {(['quentissimas', 'quentes', 'mornas', 'frias', 'geladas'] as const).map((cat) => (
                     <div key={cat} className="flex flex-col gap-3">
                        <span className={cn(
-                         "text-[10px] uppercase font-black tracking-widest",
+                         "text-[9px] md:text-[10px] uppercase font-black tracking-widest",
                          cat === 'quentissimas' ? 'text-red-500' :
                          cat === 'quentes' ? 'text-orange-500' :
                          cat === 'mornas' ? 'text-yellow-500' :
@@ -680,9 +685,9 @@ export default function App() {
                           cat === 'mornas' ? 'Mornas 🌡️' :
                           cat === 'frias' ? 'Frias ❄️' : 'Geladas 🧊'}
                        </span>
-                       <div className="flex flex-wrap gap-2">
+                       <div className="flex flex-wrap gap-1.5 md:gap-2">
                           {analysis[cat].map(d => (
-                            <Ball key={d.dezena} number={d.dezena} category={cat} />
+                            <Ball key={d.dezena} number={d.dezena} category={cat} className="w-7 h-7 text-xs md:w-8 md:h-8 md:text-sm" />
                           ))}
                           {analysis[cat].length === 0 && <span className="text-[10px] italic text-slate-500">Vazio</span>}
                        </div>
@@ -713,14 +718,14 @@ export default function App() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="flex flex-col md:flex-row items-start md:items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-green-500/30 transition-colors group"
+                    className="flex flex-col md:flex-row items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5 hover:border-green-500/30 transition-colors group"
                   >
-                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex md:block shrink-0" style={{ writingMode: 'vertical-rl' }}>
+                    <div className="text-[10px] font-mono text-slate-500 md:rotate-180 flex items-center md:block shrink-0" style={{ writingMode: 'vertical-rl' }}>
                       JOGO {(idx + 1).toString().padStart(2, '0')}
                     </div>
-                    <div className="flex flex-wrap gap-1.5 flex-grow">
+                    <div className="flex flex-wrap justify-center md:justify-start gap-1.5 flex-grow">
                       {game.balls.map(num => (
-                        <Ball key={num} number={num} />
+                        <Ball key={num} number={num} className="w-7 h-7 text-xs md:w-8 md:h-8 md:text-sm" />
                       ))}
                     </div>
                     <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 shrink-0 border-t md:border-t-0 border-white/5 pt-2 md:pt-0">
@@ -745,18 +750,18 @@ export default function App() {
       </div>
 
       {/* Bottom Status Bar */}
-      <footer className="flex flex-col sm:flex-row justify-between items-center border-t border-white/5 pt-4 gap-4">
-        <div className="flex gap-4 md:gap-6 text-[10px] font-mono text-slate-500 flex-wrap justify-center">
-          <span className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 ${data.length > 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div> 
-            ENGINE {data.length > 0 ? 'ONLINE' : 'IDLE'}
+      <footer className="flex flex-col md:flex-row justify-between items-center border-t border-white/5 pt-4 gap-4 md:gap-0 mt-auto md:mt-0">
+        <div className="flex gap-3 md:gap-6 text-[8px] md:text-[10px] font-mono text-slate-500 flex-wrap justify-center sm:justify-start">
+          <span className="flex items-center gap-1">
+            <div className={`w-1 md:w-1.5 h-1 md:h-1.5 ${data.length > 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div> 
+            ENGINE {data.length > 0 ? 'ON' : 'IDLE'}
           </span>
-          <span className="flex items-center gap-1.5"><Terminal className="w-3 h-3" /> LATÊNCIA: 12ms</span>
-          <span className="flex items-center gap-1.5"><Database className="w-3 h-3" /> SESSÃO: ADMIN_ROOT</span>
-          {fileName && <span className="text-green-500/70">ARQUIVO: {fileName}</span>}
+          <span className="flex items-center gap-1"><Terminal className="w-2.5 h-2.5 md:w-3 md:h-3" /> LAT: 12ms</span>
+          <span className="flex items-center gap-1"><Database className="w-2.5 h-2.5 md:w-3 md:h-3" /> SESSION: AUTH</span>
+          {fileName && <span className="text-green-500/70 truncate max-w-[100px] md:max-w-none">FILES: {fileName}</span>}
         </div>
-        <div className="text-[10px] text-slate-600 font-mono tracking-tighter italic uppercase">
-          © 2026 LOTOSMART AI v2.4 | EXTREME STATS ENGINE
+        <div className="text-[8px] md:text-[10px] text-slate-600 font-mono tracking-tighter italic uppercase text-center md:text-right">
+          © 2026 LOTOSMART AI v2.4 | EXTREME STATS
         </div>
       </footer>
     </div>

@@ -7,65 +7,67 @@ import * as XLSX from "xlsx";
 
 const app = express();
 
-async function configureApp() {
-  const PORT = 3000;
+// API to fetch results from Caixa
+app.get("/api/sync-caixa", async (req, res) => {
+  const urls = [
+    "https://www.asloterias.com.br/arquivos/lotofacil_excel.zip",
+    "https://confiraloterias.com.br/arquivos/lotofacil.zip",
+    "http://files.asloterias.com.br/lotofacil.zip",
+    "https://servicebus2.caixa.gov.br/loterias/arquivos/lotofacil/d_lotfac.zip",
+    "https://www.caixa.gov.br/loterias/arquivos/lotofacil/d_lotfac.zip",
+    "https://loterias.caixa.gov.br/arquivos/lotofacil/d_lotfac.zip",
+    "https://www.loterias.caixa.gov.br/arquivos/lotofacil/D_LOTFAC.ZIP"
+  ];
 
-  // API to fetch results from Caixa
-  app.get("/api/sync-caixa", async (req, res) => {
-    const urls = [
-      "https://servicebus2.caixa.gov.br/loterias/arquivos/lotofacil/d_lotfac.zip",
-      "https://www.asloterias.com.br/arquivos/lotofacil.zip",
-      "https://loterias.caixa.gov.br/arquivos/lotofacil/d_lotfac.zip",
-      "https://www.loterias.caixa.gov.br/arquivos/lotofacil/D_LOTFAC.ZIP"
-    ];
+  let lastError: any = null;
+  const startTime = Date.now();
+  const VERCEL_TIMEOUT = 9000; // Keep slightly under 10s
 
-    let lastError = null;
+  for (const url of urls) {
+    // Check total execution time to avoid Vercel 10s cutoff
+    if (Date.now() - startTime > VERCEL_TIMEOUT) {
+      console.warn("Approaching Vercel timeout, stopping URL attempts.");
+      break;
+    }
 
-    for (const url of urls) {
-      try {
-        console.log("Attempting to fetch results from:", url);
-        
-        const response = await axios.get(url, {
-          responseType: "arraybuffer",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer": "https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx",
-            "Accept": "application/zip, application/octet-stream, */*"
-          },
-          timeout: 30000 
-        });
+    try {
+      console.log("Attempting to fetch results from:", url);
+      
+      const response = await axios.get(url, {
+        responseType: "arraybuffer",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer": url.includes("asloterias") ? "https://www.asloterias.com.br/" : "https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx",
+          "Accept": "application/zip, application/octet-stream, */*"
+        },
+        timeout: 4000 // Short individual timeout to try more mirrors
+      });
 
-        if (response.status === 200) {
+      if (response.status === 200 && response.data) {
+        const pkHeader = response.data.length > 4 && response.data[0] === 0x50 && response.data[1] === 0x4B;
+
+        if (pkHeader) {
           const zip = new AdmZip(Buffer.from(response.data));
           const zipEntries = zip.getEntries();
           
-          console.log("Zip entries found:", zipEntries.map(e => e.entryName));
-
           const dataEntry = zipEntries.find(entry => 
             (entry.entryName.toLowerCase().includes("lotofacil") || 
              entry.entryName.toLowerCase().includes("resultado") || 
              entry.entryName.toLowerCase().includes("facil")) && 
             (entry.entryName.toLowerCase().endsWith(".htm") || 
              entry.entryName.toLowerCase().endsWith(".html") || 
-             entry.entryName.toLowerCase().endsWith(".xlsx") ||
-             entry.entryName.toLowerCase().endsWith(".xls") ||
-             entry.entryName.toLowerCase().endsWith(".css") ||
+             entry.entryName.toLowerCase().endsWith(".xlsx") || 
+             entry.entryName.toLowerCase().endsWith(".xls") || 
              entry.entryName.toLowerCase().endsWith(".csv"))
           );
 
-          if (!dataEntry) {
-            console.warn(`No recognized data file found in zip from ${url}`);
-            continue;
-          }
+          if (!dataEntry) continue;
 
-          console.log("Found data entry:", dataEntry.entryName);
           const buffer = dataEntry.getData();
-          
           let workbook;
           try {
               workbook = XLSX.read(buffer, { type: "buffer" });
           } catch (readError) {
-              console.error("XLSX.read error, trying alternative approach...");
               workbook = XLSX.read(buffer.toString(), { type: "string" });
           }
 
@@ -74,27 +76,43 @@ async function configureApp() {
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           return res.json({ data: jsonData.slice(0, 10000), fileName: dataEntry.entryName });
+        } else {
+          // Direct file?
+          try {
+            const workbook = XLSX.read(response.data, { type: "buffer" });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            return res.json({ data: jsonData.slice(0, 10000), fileName: "direct_download" });
+          } catch (e) {
+            continue;
+          }
         }
-      } catch (error: any) {
-        console.warn(`Failed to fetch from ${url}:`, error.message);
-        lastError = error;
       }
+    } catch (error: any) {
+      console.warn(`Failed to fetch from ${url}:`, error.message);
+      lastError = error;
     }
+  }
 
-    res.status(502).json({ 
-      error: "Falha ao sincronizar com a Caixa.",
-      details: lastError?.message || "O site da Caixa pode estar offline ou bloqueando a requisição."
-    });
+  return res.status(502).json({ 
+    error: "Falha ao sincronizar com a Caixa.",
+    details: lastError?.message || "O site da Caixa pode estar offline ou bloqueando a requisição.",
+    timeout: Date.now() - startTime > VERCEL_TIMEOUT
   });
+});
+
+async function configureApp() {
+  const PORT = 3000;
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
