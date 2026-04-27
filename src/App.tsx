@@ -479,7 +479,7 @@ export default function App() {
           </div>
           <div className="glass px-2 md:px-3 py-1.5 rounded-lg text-right min-w-[80px] md:min-w-[130px] shrink-0 flex flex-col justify-center">
             <span className="block text-[7px] md:text-[8px] uppercase text-slate-500 font-bold tracking-wider leading-tight text-center md:text-right">Base</span>
-            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length > 0 ? (data.length > 999 ? (data.length/1000).toFixed(1)+'k' : data.length) : '---'}</span>
+            <span className="block text-xs md:text-base font-mono text-white leading-tight text-center md:text-right">{data.length || '---'}</span>
           </div>
           
           <div className="flex gap-2 shrink-0">
