@@ -491,7 +491,7 @@ export default function App() {
               ) : (
                 <>
                   <span className="hidden sm:inline">Sincronizar</span>
-                  <span className="hidden sm:inline font-black">Caixa/CEF</span>
+                  <span className="hidden sm:inline font-black">CEF</span>
                   <span className="sm:hidden">CEF</span>
                 </>
               )}
