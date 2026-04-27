@@ -1,6 +1,5 @@
 {
-  "name": "LotoFacil",
-  "description": "Analisador estatístico avançado e gerador de jogos para Lotofácil com inteligência de frequência e paridade.",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "name": "LotoSmart IA",
+  "description": "Analisador estatístico de alta performance para Lotofácil com inteligência artificial, tendências de frequência e paridade.",
+  "requestFramePermissions": []
 }

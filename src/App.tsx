@@ -14,10 +14,12 @@ import {
   Download,
   Sparkles,
   Play,
-  AlertTriangle
+  AlertTriangle,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 import { Ball } from './components/Ball';
 import { cn } from './lib/utils';
 import { analyzeFrequenciy, calculateParityStats, generateGames } from './services/analysisService';
@@ -31,6 +33,7 @@ export default function App() {
   const [generatedGames, setGeneratedGames] = useState<Game[]>([]);
   const [fileName, setFileName] = useState<string>('');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<{message: string, isSyncError: boolean} | null>(null);
   
   // Game Generation Config
   const [numGames, setNumGames] = useState(10);
@@ -52,56 +55,85 @@ export default function App() {
   }, [data, generatedGames.length]);
 
   const processRawData = (rawData: any[][]) => {
-    const processedData: number[][] = [];
+    const processed: { contest: number; balls: number[] }[] = [];
     
-    // Sort rows by the first column assumed to be contest number (descending)
-    // Results from Caixa website often start with headers or empty rows
-    rawData.forEach(row => {
-      // Find all cells that can be numbers
-      const cells = row.map(cell => {
-        if (cell === null || cell === undefined) return null;
-        if (typeof cell === 'number') return cell;
-        if (typeof cell === 'string') {
-          // Remove dots from thousands and replace comma with dot contextually
-          const sanitized = cell.replace(/\./g, '').replace(',', '.').trim();
-          const parsed = parseInt(sanitized);
-          return isNaN(parsed) ? null : parsed;
+    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return [];
+
+    rawData.forEach((row, rowIndex) => {
+      if (!Array.isArray(row)) return;
+
+      const numericCells: { val: number; colIdx: number }[] = [];
+      row.forEach((cell, colIdx) => {
+        if (cell === null || cell === undefined || cell === '') return;
+        
+        if (typeof cell === 'number') {
+          numericCells.push({ val: Math.floor(cell), colIdx });
+        } else {
+          const str = String(cell).trim();
+          if (!str) return;
+
+          // Split by space, comma, semicolon, or vertical bar to handle multi-value cells
+          const parts = str.split(/[\s,;|]+/);
+          parts.forEach(part => {
+            const sanitized = part.replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
+            const parsed = parseFloat(sanitized);
+            if (!isNaN(parsed) && isFinite(parsed)) {
+              numericCells.push({ val: Math.floor(parsed), colIdx });
+            }
+          });
         }
-        return null;
       });
 
-      const filtered = cells.filter((n): n is number => n !== null);
+      // Filter cells that are valid balls (1-25)
+      const ballCandidates = numericCells.filter(n => n.val >= 1 && n.val <= 25);
+      const uniqueVals: {val: number, colIdx: number}[] = [];
+      const seenVals = new Set<number>();
       
-      // Look for exactly 15 balls. 
-      // In some formats, balls are in columns 2 to 16 if column 1 is contest
-      // In others, they might be mixed. We prioritize finding any sequence of 15 balls 1-25.
-      if (filtered.length >= 15) {
-        // Find 15 numbers between 1-25. 
-        // We often have Contest, Date, Ball1, Ball2...
-        // Let's filter everything between 1 and 25 and see if we have at least 15.
-        const balls = filtered.filter(n => n >= 1 && n <= 25);
+      // We need exactly 15 UNIQUE balls.
+      for (const b of ballCandidates) {
+        if (!seenVals.has(b.val)) {
+          seenVals.add(b.val);
+          uniqueVals.push(b);
+          if (uniqueVals.length === 15) break;
+        }
+      }
+
+      if (uniqueVals.length === 15) {
+        const finalBalls = uniqueVals.map(v => v.val).sort((a, b) => a - b);
+        const ballColIndices = new Set(uniqueVals.map(v => v.colIdx));
         
-        if (balls.length >= 15) {
-          // Take the last 15 if there are more (ignoring possible small numbers like contest sequence)
-          // Actually, balls are usually grouped.
-          // Let's look for the first occurrence of 15 valid balls.
-          for (let i = 0; i <= filtered.length - 15; i++) {
-            const slice = filtered.slice(i, i + 15);
-            if (slice.every(n => n >= 1 && n <= 25)) {
-              processedData.push([...slice].sort((a, b) => a - b));
-              break;
-            }
+        let contest = -1;
+        // Prefer numbers that are specifically not in the columns we identified as balls
+        for (const n of numericCells) {
+          if (!ballColIndices.has(n.colIdx) && n.val > 0 && n.val < 1000000) {
+            contest = n.val;
+            break;
           }
         }
+
+        if (contest === -1) {
+          // Fallback: use unique ID based on row index to prevent de-duplication
+          contest = (rowIndex + 1) + (processed.length * 10000); 
+        }
+
+        processed.push({ contest, balls: finalBalls });
       }
     });
 
-    // Remove headers if any survived or duplicates
-    const unique = Array.from(new Set(processedData.map(j => j.join(','))))
-      .map(s => s.split(',').map(Number));
-      
-    // Sort by assumed contest order (reverse historical is usually what we want for tail analysis)
-    return unique.reverse();
+    // De-duplicate by contest and sort
+    const result: number[][] = [];
+    const seenContests = new Set();
+    // Sort descending to show latest first if we display lists, but logic likes ascending for analysis
+    const sortedProcessed = [...processed].sort((a, b) => a.contest - b.contest);
+    
+    sortedProcessed.forEach(p => {
+      if (!seenContests.has(p.contest)) {
+        seenContests.add(p.contest);
+        result.push(p.balls);
+      }
+    });
+    
+    return result; 
   };
 
   useEffect(() => {
@@ -204,30 +236,69 @@ export default function App() {
     return counts;
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setSyncError(null);
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target?.result;
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+    setIsSyncing(true);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      let finalData: ArrayBuffer | string = arrayBuffer;
+
+      // Handle ZIP file
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        const zip = await JSZip.loadAsync(file);
+        const files = Object.keys(zip.files).filter(f => !zip.files[f].dir);
+        
+        // Find the most likely result file (htm, html, xlsx, xls)
+        const resultFileKey = files.find(f => 
+          f.toLowerCase().endsWith('.htm') || 
+          f.toLowerCase().endsWith('.html') || 
+          f.toLowerCase().endsWith('.xlsx') || 
+          f.toLowerCase().endsWith('.xls')
+        );
+
+        if (resultFileKey) {
+          const zipFile = zip.files[resultFileKey];
+          finalData = await zipFile.async('arraybuffer');
+        } else {
+          throw new Error("Nenhum arquivo de resultados (HTM ou XLSX) encontrado dentro do ZIP.");
+        }
+      }
+
+      const wb = XLSX.read(finalData, { type: 'array', cellStyles: true, cellDates: true, cellNF: true });
       
-      const processedData = processRawData(rawData);
+      let bestSheetData: number[][] = [];
+      let bestSheetName = '';
+      
+      // Scan all sheets to find the one with the most records
+      for (const sn of wb.SheetNames) {
+        const ws = wb.Sheets[sn];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as any[][];
+        if (rows.length > 0) {
+          const processed = processRawData(rows);
+          if (processed.length > bestSheetData.length) {
+            bestSheetData = processed;
+            bestSheetName = sn;
+          }
+        }
+      }
 
-      if (processedData.length > 0) {
-        setData(processedData);
+      if (bestSheetData.length > 0) {
+        setData(bestSheetData);
+        setFileName(file.name);
+        setSyncError(null);
+        
         // Auto-run analysis
-        const result = analyzeFrequenciy(processedData, contestsToAnalyze);
-        setAnalysis(result);
-        setParityStats(calculateParityStats(result));
-        const dist = suggestDistribution(result);
+        const res = analyzeFrequenciy(bestSheetData, contestsToAnalyze);
+        setAnalysis(res);
+        setParityStats(calculateParityStats(res));
+        const dist = suggestDistribution(res);
 
-        const games = generateGames(result, {
+        const games = generateGames(res, {
           n_jogos: numGames,
           qt: dist.qt,
           q: dist.q,
@@ -236,53 +307,50 @@ export default function App() {
           g: dist.g,
           minEvens,
           maxEvens,
-          history: processedData
+          history: bestSheetData
         });
         setGeneratedGames(games);
+        console.log(`Sucesso: Carregadas ${bestSheetData.length} linhas da aba "${bestSheetName}"`);
       } else {
-        alert("Não foi possível encontrar dados válidos da Lotofácil neste arquivo.");
+        throw new Error("Arquivo carregado, mas não detectamos resultados válidos da Lotofácil (15 dezenas entre 1 e 25) em nenhuma das abas.");
       }
-    };
-    reader.readAsBinaryString(file);
+    } catch (err: any) {
+      console.error("Erro ao ler arquivo:", err);
+      setSyncError({
+        message: `Erro no arquivo: ${err.message || 'Formato incompatível'}`,
+        isSyncError: false
+      });
+    } finally {
+      setIsSyncing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSyncCaixa = async () => {
     setIsSyncing(true);
+    setSyncError(null);
     setFileName('Sincronizando...');
     try {
       const response = await fetch('/api/sync-caixa');
       const contentType = response.headers.get('content-type');
       
-      if (!response.ok) {
-        let errorMessage = "Falha ao sincronizar.";
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await response.json();
-          if (errorData.timeout) {
-            errorMessage = "A sincronização demorou muito. O site da Caixa está instável. Tente novamente ou use a opção 'Local'.";
-          } else {
-            errorMessage = errorData.error || errorData.details || errorMessage;
-          }
-        } else {
-          errorMessage = await response.text();
-          // Truncate if it's a long HTML string
-          if (errorMessage.length > 100) errorMessage = "Erro no servidor da Caixa (URL não encontrada ou bloqueada).";
-        }
-        throw new Error(errorMessage);
-      }
-
       if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error("Non-JSON response received:", text.slice(0, 200));
-        throw new Error("Resposta inesperada do servidor (o endpoint /api/sync-caixa retornou HTML em vez de dados). Tente novamente ou use a opção 'Local'.");
+        throw new Error("O servidor retornou um formato inesperado. Tente novamente em instantes.");
       }
 
-      const { data: rawData, fileName: remoteFileName } = await response.json();
+      const result = await response.json();
       
-      const processedData = processRawData(rawData);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      const { data, fileName } = result;
+
+      const processedData = processRawData(data);
 
       if (processedData.length > 0) {
         setData(processedData);
-        setFileName(remoteFileName);
+        setFileName(fileName);
         const result = analyzeFrequenciy(processedData, contestsToAnalyze);
         setAnalysis(result);
         setParityStats(calculateParityStats(result));
@@ -306,7 +374,11 @@ export default function App() {
       }
     } catch (err: any) {
       console.error(err);
-      alert("Erro ao sincronizar: " + (err.message || "Tente novamente mais tarde."));
+      let errorMsg = err.message || "A conexão automática com a Caixa falhou (bloqueio de acesso ou site instável).";
+      setSyncError({
+        message: errorMsg,
+        isSyncError: true
+      });
       setFileName('Falha na sincronização');
     } finally {
       setIsSyncing(false);
@@ -405,40 +477,55 @@ export default function App() {
 
   const handleExport = () => {
     if (generatedGames.length === 0) {
-      alert("Nenhum jogo gerado para exportar. Gere jogos primeiro.");
+      setSyncError({ message: "Nenhum jogo gerado para exportar. Gere jogos primeiro.", isSyncError: false });
       return;
     }
 
     // Sheet 1: Generated Games
-    const gamesData = generatedGames.map((game, idx) => ({
-      'Jogo': idx + 1,
-      'Dezenas': game.balls.map(n => n.toString().padStart(2, '0')).join(' - '),
-      'Pares': game.evens,
-      'Ímpares': game.odds,
-      'Status': game.isNew ? 'Inédito' : 'Já Sorteado'
-    }));
+    const gamesData = generatedGames.map((game, idx) => {
+      const row: any = { 
+        'Sequência': idx + 1,
+      };
+      
+      // Traditional Lottery Layout: B1, B2, ... B15
+      game.balls.sort((a, b) => a - b).forEach((num, bIdx) => {
+        row[`Bola ${String(bIdx + 1).padStart(2, '0')}`] = num.toString().padStart(2, '0');
+      });
+      
+      row['Total Pares'] = game.evens;
+      row['Total Ímpares'] = game.odds;
+      row['Distribuição (P/I)'] = `${game.evens}P/${game.odds}I`;
+      row['Status Inédito'] = game.isNew ? 'SIM' : 'NÃO';
+      
+      return row;
+    });
 
-    const wsGames = XLSX.utils.json_to_sheet(gamesData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, wsGames, "Jogos Gerados");
+    try {
+      const wsGames = XLSX.utils.json_to_sheet(gamesData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsGames, "Jogos Gerados");
 
-    // Sheet 2: Analysis Info (if available)
-    if (analysis) {
-      const freqData = [
-        ...analysis.quentissimas.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Quentíssima' })),
-        ...analysis.quentes.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Quente' })),
-        ...analysis.mornas.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Morna' })),
-        ...analysis.frias.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Fria' })),
-        ...analysis.geladas.map(d => ({ Dezena: d.dezena, Frequencia: d.frequencia, Status: 'Gelada' })),
-      ].sort((a, b) => b.Frequencia - a.Frequencia);
+      // Sheet 2: Analysis Details
+      if (analysis) {
+        const freqData = [
+          ...analysis.quentissimas.map(d => ({ Dezena: d.dezena, Freq: d.frequencia, Categoria: 'Quentíssima' })),
+          ...analysis.quentes.map(d => ({ Dezena: d.dezena, Freq: d.frequencia, Categoria: 'Quente' })),
+          ...analysis.mornas.map(d => ({ Dezena: d.dezena, Freq: d.frequencia, Categoria: 'Morna' })),
+          ...analysis.frias.map(d => ({ Dezena: d.dezena, Freq: d.frequencia, Categoria: 'Fria' })),
+          ...analysis.geladas.map(d => ({ Dezena: d.dezena, Freq: d.frequencia, Categoria: 'Gelada' })),
+        ].sort((a, b) => b.Freq - a.Freq);
 
-      const wsAnalysis = XLSX.utils.json_to_sheet(freqData);
-      XLSX.utils.book_append_sheet(wb, wsAnalysis, "Análise de Frequência");
+        const wsAnalysis = XLSX.utils.json_to_sheet(freqData);
+        XLSX.utils.book_append_sheet(wb, wsAnalysis, "Análise de Dezenas");
+      }
+
+      // Export file
+      const dateStr = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+      XLSX.writeFile(wb, `LotoSmart_IA_Jogos_${dateStr}.xlsx`);
+    } catch (err) {
+      console.error("Erro na exportação:", err);
+      setSyncError({ message: "Houve um erro ao gerar o arquivo Excel. Verifique se o navegador tem permissão para downloads.", isSyncError: false });
     }
-
-    // Export file
-    const dateStr = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(wb, `LotoSmart_Export_${dateStr}.xlsx`);
   };
 
   const totalSelected = qtCount + qCount + mCount + fCount + gCount;
@@ -478,15 +565,13 @@ export default function App() {
               <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
               LotoSmart IA
             </h1>
-            <div className="flex lg:hidden">
-              <input 
-                type="file" 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                accept=".xlsx, .xls"
-              />
-            </div>
+            <input 
+              type="file" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              accept=".xlsx, .xls, .zip, .htm, .html"
+            />
           </div>
           <p className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest uppercase mt-2 leading-none text-center lg:text-left">
             ANALISADOR ESTATÍSTICO DE ALTA PERFORMANCE
@@ -572,6 +657,78 @@ export default function App() {
           </button>
         </div>
       </header>
+      {/* Sync Error Alert */}
+      <AnimatePresence>
+        {syncError && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="shrink-0 overflow-hidden"
+          >
+            <div className={cn(
+              "p-4 rounded-2xl flex items-center justify-between gap-4 border",
+              syncError.isSyncError ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-500"
+            )}>
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                  syncError.isSyncError ? "bg-red-500/20" : "bg-yellow-500/20"
+                )}>
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="flex-grow">
+                  <p className="text-sm font-bold uppercase tracking-tight leading-none mb-1">
+                    {syncError.isSyncError ? "Problema de Sincronização Automática" : "Aviso no Processamento"}
+                  </p>
+                  <p className="text-xs leading-tight mb-3 opacity-90">
+                    {syncError.message}
+                  </p>
+                  
+                  {(syncError.isSyncError && !data.length) && (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        <a 
+                          href="https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[10px] bg-green-600 text-black px-3 py-2 rounded-xl font-bold uppercase hover:bg-green-500 transition-colors flex items-center gap-1.5 shadow-lg shadow-green-500/20"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> 1. Caixa (Site Oficial)
+                        </a>
+                        <a 
+                          href="https://asloterias.com.br/lotofacil" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-[10px] bg-white/10 text-white px-3 py-2 rounded-xl font-bold uppercase hover:bg-white/20 transition-colors flex items-center gap-1.5"
+                        >
+                          <Download className="w-3.5 h-3.5" /> 2. Download Alternativo
+                        </a>
+                      </div>
+                      <div className="text-[10px] text-white/60 bg-black/40 p-3 rounded-xl border border-white/10">
+                        <p className="font-bold text-white mb-1 uppercase tracking-wider">Como atualizar manualmente:</p>
+                        <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
+                          <li>No site da Caixa, clique em <span className="text-green-400 font-bold italic">"Download de Resultados"</span>.</li>
+                          <li>Isso baixará um arquivo <span className="font-bold uppercase text-white">ZIP ou HTM</span>.</li>
+                          <li>Se houver erro, use os links <span className="text-white font-bold">ALTERNATIVOS</span> acima para o Excel (.xlsx).</li>
+                          <li>Após baixar, clique no botão <button onClick={() => fileInputRef.current?.click()} className="text-yellow-400 font-bold underline cursor-pointer hover:text-yellow-300 transition-colors uppercase">'LOCAL'</button> aqui ou no topo e selecione o arquivo.</li>
+                        </ol>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button 
+                onClick={() => setSyncError(null)}
+                className="hover:bg-black/20 p-2 rounded-lg transition-colors"
+                aria-label="Dispensar erro"
+              >
+                <ChevronRight className="w-5 h-5 rotate-90" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-col lg:flex-row gap-6 flex-grow overflow-hidden h-full">
         {/* Left Panel: Parameters */}
@@ -730,7 +887,7 @@ export default function App() {
                    onClick={handleExport}
                    className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-white/10 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                  >
-                    <FileSpreadsheet className="w-3 h-3" /> Exportar Dados (.xlsx)
+                    <FileSpreadsheet className="w-3 h-3" /> Baixar Jogos (.xlsx)
                  </button>
               </div>
             </div>
