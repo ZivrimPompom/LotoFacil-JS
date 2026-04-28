@@ -59,8 +59,11 @@ export default function App() {
     
     if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return [];
 
+    console.log(`Iniciando processamento de ${rawData.length} linhas...`);
+
     rawData.forEach((row, rowIndex) => {
-      if (!Array.isArray(row) || row.length < 15) return;
+      // Relaxed check: just ensure it's an array. We'll check for 15 balls later.
+      if (!Array.isArray(row)) return;
 
       const numericCells: { val: number; colIdx: number }[] = [];
       row.forEach((cell, colIdx) => {
@@ -82,20 +85,14 @@ export default function App() {
         }
       });
 
-      // Lotofácil has 15 balls between 1 and 25.
-      // Usually they are in a cluster. 
-      // We look for all numbers between 1-25.
+      // Filter cells that are valid balls (1-25)
       const ballCandidates = numericCells.filter(n => n.val >= 1 && n.val <= 25);
       
-      // If we have at least 15 candidates, try to find a set of 15 unique ones.
       if (ballCandidates.length >= 15) {
         const seenVals = new Set<number>();
         const uniqueBalls: {val: number, colIdx: number}[] = [];
         
-        // Some sheets have Contest ID as a number 1-25 (early contests).
-        // Strategy: Usually balls are 15 numbers in a row. 
-        // We evaluate all possible 15-ball windows or just take the most likely ones.
-        // For simplicity and common formats:
+        // Take first 15 unique numbers between 1-25 as the balls
         for (const b of ballCandidates) {
           if (!seenVals.has(b.val)) {
             seenVals.add(b.val);
@@ -109,15 +106,17 @@ export default function App() {
           const ballColIndices = new Set(uniqueBalls.map(v => v.colIdx));
           
           let contest = -1;
-          // Look for contest number (usually before the balls)
-          for (const n of numericCells) {
-            if (!ballColIndices.has(n.colIdx) && n.val > 0 && n.val < 1000000) {
-              contest = n.val;
-              break; 
-            }
+          // Look for contest number (usually a positive integer that isn't one of the ball columns)
+          // We prioritize numbers that are NOT in the 1-25 range if possible, or appear earlier in the row
+          const possibleContests = numericCells.filter(n => !ballColIndices.has(n.colIdx) && n.val > 0 && n.val < 1000000);
+          
+          if (possibleContests.length > 0) {
+            // Usually the first numeric column is the contest ID
+            contest = possibleContests[0].val;
           }
 
-          // Fallback contest if not found or seems like a duplicate of a non-contest column
+          // Fallback contest if not found or suspicious (like constant year)
+          // We'll let de-duplication handle it if contest is non-unique
           if (contest === -1) {
             contest = rowIndex + 1;
           }
@@ -127,27 +126,31 @@ export default function App() {
       }
     });
 
-    if (processed.length === 0) return [];
+    if (processed.length === 0) {
+      console.warn("Nenhuma linha com 15 dezenas (1-25) foi encontrada.");
+      return [];
+    }
 
     // De-duplication logic:
-    // If we have many rows, we should be careful about "contest" numbers that are actually "Year" 
-    // or other repeating values.
+    // If a contest number repeats too much, it's likely not a real contest ID (e.g. a Year column)
     const contestCounts = new Map<number, number>();
     processed.forEach(p => contestCounts.set(p.contest, (contestCounts.get(p.contest) || 0) + 1));
     
-    const maxCollisions = Math.max(...Array.from(contestCounts.values()));
+    let maxCollisions = 0;
+    contestCounts.forEach(count => { if (count > maxCollisions) maxCollisions = count; });
+    
+    // If more than 10% of results share the same "contest", it's unreliable
     const contestIsReliable = maxCollisions < (processed.length / 10) || processed.length < 20;
 
     const result: number[][] = [];
     const seen = new Set<string>();
 
-    // Sort by contest if reliable, else by original order
     const sorted = contestIsReliable 
       ? [...processed].sort((a, b) => a.contest - b.contest)
       : processed;
 
     sorted.forEach(p => {
-      // Create a key that avoids collapsing different results even if contest is identical
+      // If contest is reliable, use it as key. Otherwise, use balls data to avoid collapsing valid rows.
       const key = contestIsReliable 
         ? `${p.contest}` 
         : `${p.contest}_${p.balls.join(',')}`;
@@ -158,6 +161,7 @@ export default function App() {
       }
     });
     
+    console.log(`Sucesso: ${result.length} registros únicos encontrados de ${processed.length} linhas válidas.`);
     return result; 
   };
 
@@ -467,39 +471,6 @@ export default function App() {
     }
   };
 
-  const loadMockData = () => {
-    // Generate some random history for demo purposes
-    const mockHistory: number[][] = [];
-    for (let i = 0; i < 3000; i++) {
-      const game: number[] = [];
-      while (game.length < 15) {
-        const n = Math.floor(Math.random() * 25) + 1;
-        if (!game.includes(n)) game.push(n);
-      }
-      mockHistory.push(game.sort((a, b) => a - b));
-    }
-    setData(mockHistory);
-    setFileName('Demo_Lotofacil_Data.xlsx');
-    
-    const result = analyzeFrequenciy(mockHistory, contestsToAnalyze);
-    setAnalysis(result);
-    setParityStats(calculateParityStats(result));
-    const dist = suggestDistribution(result);
-
-    const games = generateGames(result, {
-      n_jogos: numGames,
-      qt: dist.qt,
-      q: dist.q,
-      m: dist.m,
-      f: dist.f,
-      g: dist.g,
-      minEvens,
-      maxEvens,
-      history: mockHistory
-    });
-    setGeneratedGames(games);
-  };
-
   const handleExport = () => {
     if (generatedGames.length === 0) {
       setSyncError({ message: "Nenhum jogo gerado para exportar. Gere jogos primeiro.", isSyncError: false });
@@ -605,8 +576,9 @@ export default function App() {
         
         <div className="flex flex-wrap gap-2 w-full lg:w-auto items-center justify-center lg:justify-end overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
           <button 
-              onClick={loadMockData}
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 shrink-0 text-left"
+              onClick={handleGenerate}
+              disabled={!analysis || totalSelected !== gameSize}
+              className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale shrink-0 text-left"
             >
               <Play className="w-4 h-4 md:w-5 md:h-5" />
               <div className="flex flex-col leading-tight">
@@ -618,7 +590,7 @@ export default function App() {
           <button 
             onClick={handleGenerate}
             disabled={!analysis || totalSelected !== gameSize}
-            className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale shrink-0 text-left"
+            className="bg-green-600 hover:bg-green-500 text-white font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale shrink-0 text-left"
           >
             <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
             <div className="flex flex-col leading-tight">
