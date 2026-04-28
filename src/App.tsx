@@ -33,7 +33,12 @@ export default function App() {
   const [generatedGames, setGeneratedGames] = useState<Game[]>([]);
   const [fileName, setFileName] = useState<string>('');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncError, setSyncError] = useState<{message: string, isSyncError: boolean} | null>(null);
+  const [syncError, setSyncError] = useState<{
+    message: string;
+    isSyncError: boolean;
+    details?: string;
+    manual_url?: string;
+  } | null>(null);
   
   // Game Generation Config
   const [numGames, setNumGames] = useState(10);
@@ -370,7 +375,14 @@ export default function App() {
       const result = await response.json();
       
       if (result.error) {
-        throw new Error(result.error);
+        setSyncError({
+          message: result.error,
+          details: result.details,
+          manual_url: result.manual_url,
+          isSyncError: true
+        });
+        setFileName('Falha na sincronização');
+        return;
       }
 
       const { data, fileName } = result;
@@ -590,7 +602,7 @@ export default function App() {
           <button 
             onClick={handleGenerate}
             disabled={!analysis || totalSelected !== gameSize}
-            className="bg-green-600 hover:bg-green-500 text-white font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale shrink-0 text-left"
+            className="bg-green-500 hover:bg-green-400 text-black font-bold px-3 py-2 md:px-4 md:py-2.5 rounded-lg transition-all glow-green uppercase text-[9px] md:text-xs flex items-center gap-2 disabled:opacity-50 disabled:grayscale shrink-0 text-left"
           >
             <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
             <div className="flex flex-col leading-tight">
@@ -678,15 +690,20 @@ export default function App() {
                   <p className="text-sm font-bold uppercase tracking-tight leading-none mb-1">
                     {syncError.isSyncError ? "Problema de Sincronização Automática" : "Aviso no Processamento"}
                   </p>
-                  <p className="text-xs leading-tight mb-3 opacity-90">
+                  <p className="text-xs leading-tight mb-1 opacity-90">
                     {syncError.message}
                   </p>
+                  {syncError.details && (
+                    <p className="text-[10px] leading-tight mb-3 text-white/70 italic">
+                      {syncError.details}
+                    </p>
+                  )}
                   
-                  {(syncError.isSyncError && !data.length) && (
+                  {syncError.isSyncError && (
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-wrap gap-2">
                         <a 
-                          href="https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx" 
+                          href={syncError.manual_url || "https://loterias.caixa.gov.br/Paginas/Lotofacil.aspx"} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-[10px] bg-green-600 text-black px-3 py-2 rounded-xl font-bold uppercase hover:bg-green-500 transition-colors flex items-center gap-1.5 shadow-lg shadow-green-500/20"
