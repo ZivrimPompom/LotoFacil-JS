@@ -55,12 +55,12 @@ export default function App() {
   }, [data, generatedGames.length]);
 
   const processRawData = (rawData: any[][]) => {
-    const processed: { contest: number; balls: number[] }[] = [];
+    const processed: { contest: number; balls: number[]; rawRow: any[] }[] = [];
     
     if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return [];
 
     rawData.forEach((row, rowIndex) => {
-      if (!Array.isArray(row)) return;
+      if (!Array.isArray(row) || row.length < 15) return;
 
       const numericCells: { val: number; colIdx: number }[] = [];
       row.forEach((cell, colIdx) => {
@@ -71,8 +71,6 @@ export default function App() {
         } else {
           const str = String(cell).trim();
           if (!str) return;
-
-          // Split by space, comma, semicolon, or vertical bar to handle multi-value cells
           const parts = str.split(/[\s,;|]+/);
           parts.forEach(part => {
             const sanitized = part.replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
@@ -84,51 +82,78 @@ export default function App() {
         }
       });
 
-      // Filter cells that are valid balls (1-25)
+      // Lotofácil has 15 balls between 1 and 25.
+      // Usually they are in a cluster. 
+      // We look for all numbers between 1-25.
       const ballCandidates = numericCells.filter(n => n.val >= 1 && n.val <= 25);
-      const uniqueVals: {val: number, colIdx: number}[] = [];
-      const seenVals = new Set<number>();
       
-      // We need exactly 15 UNIQUE balls.
-      for (const b of ballCandidates) {
-        if (!seenVals.has(b.val)) {
-          seenVals.add(b.val);
-          uniqueVals.push(b);
-          if (uniqueVals.length === 15) break;
-        }
-      }
-
-      if (uniqueVals.length === 15) {
-        const finalBalls = uniqueVals.map(v => v.val).sort((a, b) => a - b);
-        const ballColIndices = new Set(uniqueVals.map(v => v.colIdx));
+      // If we have at least 15 candidates, try to find a set of 15 unique ones.
+      if (ballCandidates.length >= 15) {
+        const seenVals = new Set<number>();
+        const uniqueBalls: {val: number, colIdx: number}[] = [];
         
-        let contest = -1;
-        // Prefer numbers that are specifically not in the columns we identified as balls
-        for (const n of numericCells) {
-          if (!ballColIndices.has(n.colIdx) && n.val > 0 && n.val < 1000000) {
-            contest = n.val;
-            break;
+        // Some sheets have Contest ID as a number 1-25 (early contests).
+        // Strategy: Usually balls are 15 numbers in a row. 
+        // We evaluate all possible 15-ball windows or just take the most likely ones.
+        // For simplicity and common formats:
+        for (const b of ballCandidates) {
+          if (!seenVals.has(b.val)) {
+            seenVals.add(b.val);
+            uniqueBalls.push(b);
+            if (uniqueBalls.length === 15) break;
           }
         }
 
-        if (contest === -1) {
-          // Fallback: use unique ID based on row index to prevent de-duplication
-          contest = (rowIndex + 1) + (processed.length * 10000); 
-        }
+        if (uniqueBalls.length === 15) {
+          const finalBalls = uniqueBalls.map(v => v.val).sort((a, b) => a - b);
+          const ballColIndices = new Set(uniqueBalls.map(v => v.colIdx));
+          
+          let contest = -1;
+          // Look for contest number (usually before the balls)
+          for (const n of numericCells) {
+            if (!ballColIndices.has(n.colIdx) && n.val > 0 && n.val < 1000000) {
+              contest = n.val;
+              break; 
+            }
+          }
 
-        processed.push({ contest, balls: finalBalls });
+          // Fallback contest if not found or seems like a duplicate of a non-contest column
+          if (contest === -1) {
+            contest = rowIndex + 1;
+          }
+
+          processed.push({ contest, balls: finalBalls, rawRow: row });
+        }
       }
     });
 
-    // De-duplicate by contest and sort
-    const result: number[][] = [];
-    const seenContests = new Set();
-    // Sort descending to show latest first if we display lists, but logic likes ascending for analysis
-    const sortedProcessed = [...processed].sort((a, b) => a.contest - b.contest);
+    if (processed.length === 0) return [];
+
+    // De-duplication logic:
+    // If we have many rows, we should be careful about "contest" numbers that are actually "Year" 
+    // or other repeating values.
+    const contestCounts = new Map<number, number>();
+    processed.forEach(p => contestCounts.set(p.contest, (contestCounts.get(p.contest) || 0) + 1));
     
-    sortedProcessed.forEach(p => {
-      if (!seenContests.has(p.contest)) {
-        seenContests.add(p.contest);
+    const maxCollisions = Math.max(...Array.from(contestCounts.values()));
+    const contestIsReliable = maxCollisions < (processed.length / 10) || processed.length < 20;
+
+    const result: number[][] = [];
+    const seen = new Set<string>();
+
+    // Sort by contest if reliable, else by original order
+    const sorted = contestIsReliable 
+      ? [...processed].sort((a, b) => a.contest - b.contest)
+      : processed;
+
+    sorted.forEach(p => {
+      // Create a key that avoids collapsing different results even if contest is identical
+      const key = contestIsReliable 
+        ? `${p.contest}` 
+        : `${p.contest}_${p.balls.join(',')}`;
+        
+      if (!seen.has(key)) {
+        seen.add(key);
         result.push(p.balls);
       }
     });
@@ -494,7 +519,7 @@ export default function App() {
       
       row['Total Pares'] = game.evens;
       row['Total Ímpares'] = game.odds;
-      row['Distribuição (P/I)'] = `${game.evens}P/${game.odds}I`;
+      row['Distribuição (PAR/ÍMPAR)'] = `${game.evens}PAR/${game.odds}ÍMPAR`;
       row['Status Inédito'] = game.isNew ? 'SIM' : 'NÃO';
       
       return row;
@@ -860,7 +885,7 @@ export default function App() {
                 <div key={stat.segment} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs">{stat.segment}</span>
-                    <span className="text-[10px] font-mono text-slate-400">{stat.evens}P | {stat.odds}Í ({stat.total} total)</span>
+                    <span className="text-[10px] font-mono text-slate-400">{stat.evens} PAR | {stat.odds} ÍMPAR ({stat.total} total)</span>
                   </div>
                   <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden flex">
                     <div 
@@ -879,7 +904,7 @@ export default function App() {
                  <div className="p-3 bg-green-500/5 rounded-xl border border-green-500/10 mb-2">
                     <div className="flex justify-between items-center mb-1">
                        <span className="text-[10px] text-green-400 font-bold uppercase italic">Sugestão de Paridade</span>
-                       <span className="text-[10px] font-mono text-white">{expectedParity.evens}P | {expectedParity.odds}Í</span>
+                       <span className="text-[10px] font-mono text-white">{expectedParity.evens} PAR | {expectedParity.odds} ÍMPAR</span>
                     </div>
                     <p className="text-[9px] text-slate-500 italic">Baseado na sua distribuição de dezenas selecionada.</p>
                  </div>
@@ -974,7 +999,7 @@ export default function App() {
                       ))}
                     </div>
                     <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 shrink-0 border-t md:border-t-0 border-white/5 pt-2 md:pt-0">
-                      <div className="text-[10px] text-slate-500 font-bold">{game.evens}P | {game.odds}Í</div>
+                      <div className="text-[10px] text-slate-500 font-bold">{game.evens} PAR | {game.odds} ÍMPAR</div>
                       {game.isNew ? (
                         <div className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold">INÉDITO</div>
                       ) : (
