@@ -708,15 +708,7 @@ export default function App() {
                           rel="noopener noreferrer"
                           className="text-[10px] bg-green-600 text-black px-3 py-2 rounded-xl font-bold uppercase hover:bg-green-500 transition-colors flex items-center gap-1.5 shadow-lg shadow-green-500/20"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" /> 1. Caixa (Site Oficial)
-                        </a>
-                        <a 
-                          href="https://asloterias.com.br/lotofacil" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[10px] bg-white/10 text-white px-3 py-2 rounded-xl font-bold uppercase hover:bg-white/20 transition-colors flex items-center gap-1.5"
-                        >
-                          <Download className="w-3.5 h-3.5" /> 2. Download Alternativo
+                          <ExternalLink className="w-3.5 h-3.5" /> CAIXA (SITE OFICIAL)
                         </a>
                       </div>
                       <div className="text-[10px] text-white/60 bg-black/40 p-3 rounded-xl border border-white/10">
@@ -724,7 +716,6 @@ export default function App() {
                         <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
                           <li>No site da Caixa, clique em <span className="text-green-400 font-bold italic">"Download de Resultados"</span>.</li>
                           <li>Isso baixará um arquivo <span className="font-bold uppercase text-white">ZIP ou HTM</span>.</li>
-                          <li>Se houver erro, use os links <span className="text-white font-bold">ALTERNATIVOS</span> acima para o Excel (.xlsx).</li>
                           <li>Após baixar, clique no botão <button onClick={() => fileInputRef.current?.click()} className="text-yellow-400 font-bold underline cursor-pointer hover:text-yellow-300 transition-colors uppercase">'LOCAL'</button> aqui ou no topo e selecione o arquivo.</li>
                         </ol>
                       </div>
