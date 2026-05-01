@@ -60,114 +60,68 @@ export default function App() {
   }, [data, generatedGames.length]);
 
   const processRawData = (rawData: any[][]) => {
-    const processed: { contest: number; balls: number[]; rawRow: any[] }[] = [];
+    const processed: number[][] = [];
     
     if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return [];
 
     console.log(`Iniciando processamento de ${rawData.length} linhas...`);
 
+    // O usuário solicitou:
+    // 1. Ler apenas das colunas C até Q (bolas sorteadas) -> Índices 2 a 16
+    // 2. Contar as linhas para determinar o número concurso (implícito na ordem)
+    // 3. Linhas de numeração mais alta (índice maior no array) são as mais recentes
+
     rawData.forEach((row, rowIndex) => {
-      // Relaxed check: just ensure it's an array. We'll check for 15 balls later.
-      if (!Array.isArray(row)) return;
+      if (!Array.isArray(row) || row.length < 17) return;
 
-      const numericCells: { val: number; colIdx: number }[] = [];
-      row.forEach((cell, colIdx) => {
-        if (cell === null || cell === undefined || cell === '') return;
+      const balls: number[] = [];
+      // Colunas C (index 2) até Q (index 16) - total de 15 colunas
+      for (let i = 2; i <= 16; i++) {
+        const cell = row[i];
+        if (cell === null || cell === undefined || String(cell).trim() === '') continue;
         
+        let val = NaN;
         if (typeof cell === 'number') {
-          numericCells.push({ val: Math.floor(cell), colIdx });
+          val = Math.floor(cell);
         } else {
+          // Extrai apenas os dígitos da célula (ex: "01" -> 1, " 05 " -> 5)
           const str = String(cell).trim();
-          if (!str) return;
-          const parts = str.split(/[\s,;|]+/);
-          parts.forEach(part => {
-            const sanitized = part.replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
-            const parsed = parseFloat(sanitized);
-            if (!isNaN(parsed) && isFinite(parsed)) {
-              numericCells.push({ val: Math.floor(parsed), colIdx });
+          if (str) {
+            // Tenta converter removendo zeros à esquerda
+            const sanitized = str.replace(/^0+/, '');
+            val = parseInt(sanitized || str, 10); // Usa str original se sanitized for vazio (caso do "0")
+            
+            // Se falhar, extrai qualquer número de dentro da string
+            if (isNaN(val)) {
+              const digits = str.replace(/[^0-9]/g, '');
+              if (digits) val = parseInt(digits, 10);
             }
-          });
+          }
         }
-      });
-
-      // Filter cells that are valid balls (1-25)
-      const ballCandidates = numericCells.filter(n => n.val >= 1 && n.val <= 25);
-      
-      if (ballCandidates.length >= 15) {
-        const seenVals = new Set<number>();
-        const uniqueBalls: {val: number, colIdx: number}[] = [];
         
-        // Take first 15 unique numbers between 1-25 as the balls
-        for (const b of ballCandidates) {
-          if (!seenVals.has(b.val)) {
-            seenVals.add(b.val);
-            uniqueBalls.push(b);
-            if (uniqueBalls.length === 15) break;
-          }
+        if (!isNaN(val) && val >= 1 && val <= 25) {
+          balls.push(val);
         }
+      }
 
-        if (uniqueBalls.length === 15) {
-          const finalBalls = uniqueBalls.map(v => v.val).sort((a, b) => a - b);
-          const ballColIndices = new Set(uniqueBalls.map(v => v.colIdx));
-          
-          let contest = -1;
-          // Look for contest number (usually a positive integer that isn't one of the ball columns)
-          // We prioritize numbers that are NOT in the 1-25 range if possible, or appear earlier in the row
-          const possibleContests = numericCells.filter(n => !ballColIndices.has(n.colIdx) && n.val > 0 && n.val < 1000000);
-          
-          if (possibleContests.length > 0) {
-            // Usually the first numeric column is the contest ID
-            contest = possibleContests[0].val;
-          }
-
-          // Fallback contest if not found or suspicious (like constant year)
-          // We'll let de-duplication handle it if contest is non-unique
-          if (contest === -1) {
-            contest = rowIndex + 1;
-          }
-
-          processed.push({ contest, balls: finalBalls, rawRow: row });
-        }
+      // Validação: a Lotofácil sempre tem 15 dezenas nas colunas C-Q
+      if (balls.length === 15) {
+        // Ordenamos as dezenas para garantir consistência estatística
+        const sortedBalls = [...balls].sort((a, b) => a - b);
+        processed.push(sortedBalls);
+      } else if (rowIndex > 0 && balls.length > 0) {
+         // Log de depuração mais detalhado para ajudar o usuário
+         console.debug(`Linha ${rowIndex + 1} (Conc: ${row[0]}) ignorada: ${balls.length} dezenas em C-Q.`);
       }
     });
 
     if (processed.length === 0) {
-      console.warn("Nenhuma linha com 15 dezenas (1-25) foi encontrada.");
+      console.warn("Nenhum resultado válido encontrado nas colunas C-Q. Verifique se o arquivo tem 15 dezenas entre as colunas C e Q.");
       return [];
     }
-
-    // De-duplication logic:
-    // If a contest number repeats too much, it's likely not a real contest ID (e.g. a Year column)
-    const contestCounts = new Map<number, number>();
-    processed.forEach(p => contestCounts.set(p.contest, (contestCounts.get(p.contest) || 0) + 1));
     
-    let maxCollisions = 0;
-    contestCounts.forEach(count => { if (count > maxCollisions) maxCollisions = count; });
-    
-    // If more than 10% of results share the same "contest", it's unreliable
-    const contestIsReliable = maxCollisions < (processed.length / 10) || processed.length < 20;
-
-    const result: number[][] = [];
-    const seen = new Set<string>();
-
-    const sorted = contestIsReliable 
-      ? [...processed].sort((a, b) => a.contest - b.contest)
-      : processed;
-
-    sorted.forEach(p => {
-      // If contest is reliable, use it as key. Otherwise, use balls data to avoid collapsing valid rows.
-      const key = contestIsReliable 
-        ? `${p.contest}` 
-        : `${p.contest}_${p.balls.join(',')}`;
-        
-      if (!seen.has(key)) {
-        seen.add(key);
-        result.push(p.balls);
-      }
-    });
-    
-    console.log(`Sucesso: ${result.length} registros únicos encontrados de ${processed.length} linhas válidas.`);
-    return result; 
+    console.log(`Sucesso: ${processed.length} registros extraídos.`);
+    return processed; 
   };
 
   useEffect(() => {
@@ -266,6 +220,27 @@ export default function App() {
     setMCount(counts.m);
     setFCount(counts.f);
     setGCount(counts.g);
+
+    // Cativar a paridade sugerida com base na distribuição
+    const cats = [
+      { data: result.quentissimas, count: counts.qt },
+      { data: result.quentes, count: counts.q },
+      { data: result.mornas, count: counts.m },
+      { data: result.frias, count: counts.f },
+      { data: result.geladas, count: counts.g },
+    ];
+
+    let avgEvens = 0;
+    cats.forEach(cat => {
+      if (cat.data.length === 0) return;
+      const evensInCat = cat.data.filter(d => d.dezena % 2 === 0).length;
+      const evenRatio = evensInCat / cat.data.length;
+      avgEvens += evenRatio * cat.count;
+    });
+
+    const suggestedEvens = Math.round(avgEvens);
+    setMinEvens(suggestedEvens);
+    setMaxEvens(suggestedEvens);
 
     return counts;
   };
