@@ -1,0 +1,17 @@
+{
+  "name": "Analisador Lotofácil Pro",
+  "short_name": "LotoPro",
+  "description": "Análise avançada e geração de jogos para Lotofácil",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/248/248114.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "name": "LotoSmart IA",
-  "description": "Analisador estatístico de alta performance para Lotofácil com inteligência artificial, tendências de frequência e paridade.",
+  "name": "Analisador Lotofácil Pro",
+  "description": "App profissional para análise estatística, tendências e geração de jogos para a Lotofácil com suporte a PWA e carregamento via Excel.",
   "requestFramePermissions": []
 }
